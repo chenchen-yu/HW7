@@ -83,12 +83,12 @@ group by s.staff_id;
 # 6c. List each film and the number of actors who are listed for that film. Use tables film_actor and film. Use inner join.
 select title, count(actor_id) as 'number of actors'
 from film
-left join film_actor on 
+inner join film_actor on 
 film.film_id = film_actor.film_id
 group by title;
 
-
 # 6d. How many copies of the film Hunchback Impossible exist in the inventory system?
+# method 1
 select count(*) as 'copies of Hunchback Impossible'
 from inventory
 where film_id in 
@@ -97,6 +97,12 @@ where film_id in
   from film
   where title = 'Hunchback Impossible'
 )
+
+# method 2
+SELECT title, 
+(SELECT COUNT(*) FROM inventory WHERE film.film_id = inventory.film_id ) AS 'Number of Copies'
+FROM film
+WHERE title = 'Hunchback Impossible';
 
 # 6e. Using the tables payment and customer and the JOIN command, 
 #     list the total paid by each customer. List the customers alphabetically by last name
@@ -172,13 +178,15 @@ group by title
 order by frequency desc;
 
 # 7f. Write a query to display how much business, in dollars, each store brought in.
-select store.store_id, sum(amount) as 'total amount'
-from store 
-left join customer
-  on store.store_id = customer.store_id
-left join payment
-  on customer.customer_id = payment.customer_id
-group by store.store_id;
+select s.store_id, sum(amount) as 'total amount'
+  from store as s
+  left join inventory as i
+  on (s.store_id = i.store_id)
+  left join rental as r
+  on (i.inventory_id = r.inventory_id)
+  left join payment as p
+  on (r.rental_id = p.rental_id)  
+  group by s.store_id;
 
 # 7g. Write a query to display for each store its store ID, city, and country.
 select store.store_id, city, country
@@ -192,7 +200,40 @@ inner join country
   
 # 7h. List the top five genres in gross revenue in descending order. 
 #     (Hint: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
+select c.name, count(*) as 'frequency'
+	from category as c
+	join film_category as f
+	on (c.category_id = f.category_id)
+	join inventory as i
+	on (f.film_id = i.film_id)
+	join rental as r
+	on (i.inventory_id = r.inventory_id)
+	join payment as p
+	on (r.rental_id = p.rental_id)  
+	group by c.name
+	order by frequency desc limit 5;
 
+# 8a. In your new role as an executive, you would like to have an easy way of viewing the Top five genres by gross revenue. 
+#     Use the solution from the problem above to create a view. 
+create view top_five_genres as 
+select c.name, count(*) as 'frequency'
+	from category as c
+	join film_category as f
+	on (c.category_id = f.category_id)
+	join inventory as i
+	on (f.film_id = i.film_id)
+	join rental as r
+	on (i.inventory_id = r.inventory_id)
+	join payment as p
+	on (r.rental_id = p.rental_id)  
+	group by c.name
+	order by frequency desc limit 5;
+
+# 8b. How would you display the view that you created in 8a?
+select * from top_five_genres; 
+
+# 8c. You find that you no longer need the view top_five_genres. Write a query to delete it.
+drop view top_five_genres;
 
 
 
